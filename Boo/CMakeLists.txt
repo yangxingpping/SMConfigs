@@ -15,11 +15,7 @@ if(TARGET bar)
   add_library(Foo::bar ALIAS bar)
   list(APPEND test_path "$<TARGET_FILE_DIR:Foo::bar>")
 else()
-  find_package(Foo CONFIG REQUIRED)
-  message("Foo_DIR: ${Foo_DIR}")
-
-  # TODO: Make it robust
-  list(APPEND test_path "${Foo_DIR}/../../../${CMAKE_INSTALL_BINDIR}")
+  
 endif()
 
 if(IOS)
@@ -39,7 +35,7 @@ add_executable(boo boo.cpp)
 # Note:
 # * library Foo::baz will be linked automatically
 # * macro FOO_BAZ_DEBUG will be added automatically (Foo::baz usage requirement)
-target_link_libraries(boo PRIVATE bar PRIVATE spdlog::spdlog)
+target_link_libraries(boo PRIVATE SMConfigs PRIVATE spdlog::spdlog)
 
 # CMAKE_<CONFIG>_POSTFIX has no effect on executable
 # * http://www.cmake.org/Bug/view.php?id=7868

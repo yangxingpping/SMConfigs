@@ -3,9 +3,11 @@ cmake_minimum_required(VERSION 3.25)
 set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
   CACHE STRING "Vcpkg toolchain file")
 
-project(youngCMake)
+project(SMConfigs)
 
+find_package(SMUtils CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
+find_package(SMWhereami CONFIG REQUIRED)
 
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 

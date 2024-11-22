@@ -1,58 +1,6 @@
-# This file creates project 'Foo' with two library targets 'bar' and 'baz'.
-# Target 'bar' depends on 'baz'. After installation this project can be found
-# by 'find_package(... CONFIG)' command:
-#
-#    find_package(Foo CONFIG REQUIRED)
-#    target_link_libraries(... Foo::bar)
-#
-# Note that requirements propagated automatically, for example:
-#   * Foo::baz linked automatically
-#   * <prefix>/include added to header search path
-#   * FOO_BAZ_DEBUG=1/FOO_BAR_DEBUG=1 added on Debug
-#   * FOO_BAZ_DEBUG=0/FOO_BAR_DEBUG=0 added on other configurations
+cmake_minimum_required(VERSION 3.25)
 
-####
-# Set minimum version of CMake.
-cmake_minimum_required(VERSION 3.25) # GENERATOR_IS_MULTI_CONFIG
-
-####
-# Set variables:
-#   * PROJECT_NAME
-#   * PROJECT_VERSION
-project(bar VERSION 1.2.3)
-
-# Debug Information Format:
-# * https://docs.microsoft.com/en-us/cpp/build/reference/z7-zi-zi-debug-information-format
-#
-# Notes:
-#
-# * /Z7 still produce PDB file for DLL and without the PDB file installed
-#   you can't debug DLL
-#
-# * /Z7 for static library doesn't produce PDB. It's the best option if you
-#   want debug library without changing internal CMake code.
-#   Toolchain example: https://github.com/ruslo/polly/blob/master/vs-15-2017-win64-z7.cmake
-#
-# * /Zi option is default (produce separate PDB files)
-#
-# * TARGET_PDB_FILE generator expression doesn't support static libraries.
-#   See https://gitlab.kitware.com/cmake/cmake/issues/16932
-#   (that's why it's not used here)
-#
-# * This code can be implemented as a 'PDB DESTINATION' feature.
-#   See https://gitlab.kitware.com/cmake/cmake/issues/16935#note_275180
-#
-# * By default only Debug/RelWithDebInfo produce debug information,
-#   Release/MinSizeRel do not.
-#
-# * Generated PDB for static libraries doesn't respect CMAKE_<CONFIG>_POSTFIX
-#   variable. It means if you specify Debug and RelWithDebInfo then generated
-#   PDB files for both will be "md5.pdb". When PDB files installed one will
-#   overwrite another making it unusable. Release + Debug configurations will
-#   work fine because Release doesn't produce PDB files.
-#
-# * All PDB files will be installed, including PDB for targets that will not
-#   be installed themselves.
+project(SMConfigs VERSION 1.2.3)
 
 if(MSVC)
   set(pdb_output_dir "${CMAKE_CURRENT_BINARY_DIR}/pdb-files")
@@ -66,10 +14,6 @@ if(MSVC)
   else()
     set(config_suffix "")
   endif()
-
-  # Introduce variables:
-  # * CMAKE_INSTALL_LIBDIR
-  # * CMAKE_INSTALL_BINDIR
   include(GNUInstallDirs)
 
   if(BUILD_SHARED_LIBS)
@@ -87,9 +31,9 @@ endif()
 ####
 # Create targets
 aux_source_directory(./ A)
-add_library(bar ${A})
+add_library(SMConfigs ${A})
 
-target_link_libraries(bar PRIVATE spdlog::spdlog)
+target_link_libraries(SMConfigs PRIVATE spdlog::spdlog PRIVATE SMUtils PRIVATE SMWhereami)
 
 ####
 # Properties of targets
@@ -99,8 +43,7 @@ target_link_libraries(bar PRIVATE spdlog::spdlog)
 #   * Debug: -DFOO_BAR_DEBUG=1
 #   * Release: -DFOO_BAR_DEBUG=0
 #   * other: -DFOO_BAR_DEBUG=0
-target_compile_definitions(bar PUBLIC "FOO_BAZ_DEBUG=$<CONFIG:Debug>")
-target_compile_definitions(bar PUBLIC "FOO_BAR_DEBUG=$<CONFIG:Debug>")
+target_compile_definitions(SMConfigs PUBLIC "SMCONFIGS_DEBUG=$<CONFIG:Debug>")
 
 # Generate:
 #   * ${CMAKE_CURRENT_BINARY_DIR}/generated_headers/foo/BAR_EXPORT.h with BAR_EXPORT
@@ -109,12 +52,12 @@ target_compile_definitions(bar PUBLIC "FOO_BAR_DEBUG=$<CONFIG:Debug>")
 # * We need prefix 'foo' to fit OSX/iOS frameworks layout
 # * File name match name of the macro
 set(generated_headers "${CMAKE_CURRENT_BINARY_DIR}/generated_headers")
-set(bar_export "${generated_headers}/BAR_EXPORT.h")
+set(bar_export "${generated_headers}/SMCONFIGS_EXPORT.h")
 #set(baz_export "${generated_headers}/BAZ_EXPORT.h")
 
 # https://cmake.org/cmake/help/v3.9/module/GenerateExportHeader.html
 include(GenerateExportHeader)
-generate_export_header(bar EXPORT_FILE_NAME ${bar_export})
+generate_export_header(SMConfigs EXPORT_FILE_NAME ${bar_export})
 
 # Global includes. Used by all targets
 # Note:
@@ -123,7 +66,7 @@ generate_export_header(bar EXPORT_FILE_NAME ${bar_export})
 #   * header location in project: ${CMAKE_CURRENT_BINARY_DIR}/generated_headers/foo/BAR_EXPORT.h
 #   * header can be included by: `#include <BAR_EXPORT.h>`
 target_include_directories(
-    bar PUBLIC
+  SMConfigs PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>"
     "$<BUILD_INTERFACE:${generated_headers}>"
 )
@@ -177,7 +120,7 @@ configure_package_config_file(
 #   * header location after install: <prefix>/include/foo/Bar.hpp
 #   * headers can be included by C++ code `#include <foo/Bar.hpp>`
 install(
-    TARGETS bar
+    TARGETS SMConfigs
     EXPORT "${TARGETS_EXPORT_NAME}"
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
@@ -191,7 +134,7 @@ install(
 install(
     DIRECTORY "./"
     DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
-    FILES_MATCHING PATTERN "*.hpp"
+    FILES_MATCHING PATTERN "*.h"
 )
 
 # Export headers:
